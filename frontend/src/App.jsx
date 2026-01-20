@@ -16,7 +16,7 @@ function App() {
                 <img 
                   src={itcLogo}
                   alt="Department of Information Technology Logo"
-                  className="h-18 w-auto object-contain"
+                  className="h-16 w-auto object-contain"
                 />
                 
               </div>
