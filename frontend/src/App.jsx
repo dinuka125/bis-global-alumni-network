@@ -16,12 +16,9 @@ function App() {
                 <img 
                   src={itcLogo}
                   alt="Department of Information Technology Logo"
-                  className="h-20 w-auto object-contain"
+                  className="h-18 w-auto object-contain"
                 />
-                <div className="flex flex-col">
-                    <span className="font-bold text-lg leading-tight">Department of Information Technology</span>
-                    <span className="text-xs text-bis-gold font-medium">University of Sri Jayewardenepura</span>
-                </div>
+                
               </div>
               <div className="flex space-x-4">
                 <Link to="/" className="flex items-center px-3 py-2 rounded-md hover:bg-white/10 transition">
