@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import MapView from './components/Map';
 import AdminPanel from './components/Admin';
 import { Map, Shield, GraduationCap } from 'lucide-react';
+import itcLogo from './assets/itc-logo.png';
 
 function App() {
   return (
@@ -13,9 +14,9 @@ function App() {
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center space-x-3">
                 <img 
-                    src="https://upload.wikimedia.org/wikipedia/en/c/cc/University_of_Sri_Jayewardenepura_logo.png" 
-                    alt="USJ Logo" 
-                    className="h-10 w-10 bg-white rounded-full p-1"
+                  src={itcLogo}
+                  alt="Department of Information Technology Logo"
+                  className="h-20 w-auto object-contain"
                 />
                 <div className="flex flex-col">
                     <span className="font-bold text-lg leading-tight">Department of Information Technology</span>
