@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 import pandas as pd
+import numpy as np
 import os
 import uuid
 import io
@@ -54,7 +55,13 @@ def load_data():
         df = pd.DataFrame(columns=["id", "batch", "name", "location", "job_title", "linkedin_url", "image_url", "latitude", "longitude"])
         df.to_csv(DATA_FILE, index=False)
         return df
-    return pd.read_csv(DATA_FILE)
+    df = pd.read_csv(DATA_FILE)
+    # Ensure batch column exists (for backward compatibility with old data)
+    if "batch" not in df.columns:
+        df["batch"] = ""
+    # Fill empty strings in batch with empty string (not NaN)
+    df["batch"] = df["batch"].fillna("")
+    return df
 
 def save_data(df):
     df.to_csv(DATA_FILE, index=False)
@@ -171,7 +178,27 @@ def read_root():
 def get_students():
     df = load_data()
     # Replace NaN with None for JSON serialization
-    return df.where(pd.notnull(df), None).to_dict(orient="records")
+    # Handle NaN values properly for JSON compatibility
+    import math
+    
+    # Fill NaN in string columns with empty string
+    # For float columns, replace NaN with None directly
+    for col in df.columns:
+        if df[col].dtype == 'float64':
+            df[col] = df[col].replace([np.nan, np.inf, -np.inf], None)
+        else:
+            df[col] = df[col].fillna("")
+    
+    records = df.to_dict(orient="records")
+    # Final cleanup: replace empty strings with None, and handle any remaining float NaN
+    for record in records:
+        for key, value in record.items():
+            if value == "":
+                record[key] = None
+            elif isinstance(value, float):
+                if math.isnan(value) or math.isinf(value):
+                    record[key] = None
+    return records
 
 @app.post("/students")
 def create_student(student: StudentCreate):
@@ -207,6 +234,19 @@ def delete_student(student_id: str):
     df = df[df["id"] != student_id]
     save_data(df)
     return {"message": "Deleted successfully"}
+
+class BulkDeleteRequest(BaseModel):
+    student_ids: list[str]
+
+@app.delete("/students/bulk")
+def bulk_delete_students(request: BulkDeleteRequest):
+    df = load_data()
+    initial_count = len(df)
+    # Remove all students with IDs in the request
+    df = df[~df["id"].isin(request.student_ids)]
+    deleted_count = initial_count - len(df)
+    save_data(df)
+    return {"message": f"Successfully deleted {deleted_count} student(s)", "deleted_count": deleted_count}
 
 @app.put("/students/{student_id}")
 def update_student(student_id: str, student: StudentCreate):

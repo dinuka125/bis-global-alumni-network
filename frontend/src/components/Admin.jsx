@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Trash2, Plus, RefreshCw, User, MapPin, Briefcase, Linkedin, Image as ImageIcon, Lock, Edit2, Upload, FileSpreadsheet, Download, GraduationCap } from 'lucide-react';
+import { Trash2, Plus, RefreshCw, User, MapPin, Briefcase, Linkedin, Image as ImageIcon, Lock, Edit2, Upload, FileSpreadsheet, Download, GraduationCap, CheckSquare } from 'lucide-react';
 import { API_URL } from '../config';
 
 const AdminPanel = () => {
@@ -29,6 +29,9 @@ const AdminPanel = () => {
     const [csvFile, setCsvFile] = useState(null);
     const [googleSheetUrl, setGoogleSheetUrl] = useState("");
     const [importStatus, setImportStatus] = useState("");
+
+    // Bulk Selection State
+    const [selectedStudents, setSelectedStudents] = useState([]);
 
     useEffect(() => {
         // Check for existing session
@@ -65,6 +68,10 @@ const AdminPanel = () => {
         try {
             const response = await axios.get(`${API_URL}/students`);
             setStudents(response.data);
+            // Clear selection if any selected students no longer exist
+            setSelectedStudents(prev => 
+                prev.filter(id => response.data.some(s => s.id === id))
+            );
         } catch (error) {
             console.error(error);
         } finally {
@@ -180,8 +187,59 @@ const AdminPanel = () => {
             try {
                 await axios.delete(`${API_URL}/students/${id}`);
                 fetchStudents();
+                // Remove from selection if selected
+                setSelectedStudents(selectedStudents.filter(selectedId => selectedId !== id));
             } catch (error) {
                 console.error(error);
+            }
+        }
+    };
+
+    // Bulk Selection Functions
+    const toggleStudentSelection = (studentId) => {
+        setSelectedStudents(prev => 
+            prev.includes(studentId) 
+                ? prev.filter(id => id !== studentId)
+                : [...prev, studentId]
+        );
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedStudents.length === students.length) {
+            setSelectedStudents([]);
+        } else {
+            setSelectedStudents(students.map(s => s.id));
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedStudents.length === 0) {
+            alert("Please select at least one student to delete.");
+            return;
+        }
+
+        const confirmMessage = `Are you sure you want to delete ${selectedStudents.length} student(s)? This action cannot be undone.`;
+        if (window.confirm(confirmMessage)) {
+            setSubmitting(true);
+            const studentsToDelete = [...selectedStudents]; // Create a copy to avoid state issues
+            setSelectedStudents([]); // Clear selection immediately to prevent UI issues
+            
+            try {
+                // Use the new bulk delete endpoint - single request for all deletions
+                const response = await axios.delete(`${API_URL}/students/bulk`, {
+                    data: { student_ids: studentsToDelete }
+                });
+                
+                alert(response.data.message || `Successfully deleted ${studentsToDelete.length} student(s).`);
+                
+                // Refresh the student list
+                await fetchStudents();
+            } catch (error) {
+                console.error("Error in bulk delete:", error);
+                const errorMessage = error.response?.data?.detail || error.message || "Unknown error";
+                alert(`Error deleting students: ${errorMessage}. Please refresh the page and try again.`);
+            } finally {
+                setSubmitting(false);
             }
         }
     };
@@ -483,7 +541,45 @@ const AdminPanel = () => {
 
             {/* List Section */}
             <div className="lg:col-span-2 bg-white rounded-xl shadow-md p-6 border border-gray-100 overflow-hidden flex flex-col">
-                <h2 className="text-xl font-bold text-gray-800 mb-6">Registered Alumni ({students.length})</h2>
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-bold text-gray-800">Registered Alumni ({students.length})</h2>
+                    {selectedStudents.length > 0 && (
+                        <button
+                            onClick={handleBulkDelete}
+                            disabled={submitting}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {submitting ? (
+                                <>
+                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                <>
+                                    <Trash2 className="w-4 h-4" />
+                                    Delete Selected ({selectedStudents.length})
+                                </>
+                            )}
+                        </button>
+                    )}
+                </div>
+
+                {/* Select All Checkbox */}
+                {students.length > 0 && (
+                    <div className="flex items-center mb-4 pb-4 border-b border-gray-200">
+                        <label className="flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={selectedStudents.length === students.length && students.length > 0}
+                                onChange={toggleSelectAll}
+                                className="w-4 h-4 text-bis-maroon border-gray-300 rounded focus:ring-bis-maroon focus:ring-2"
+                            />
+                            <span className="ml-2 text-sm font-medium text-gray-700">
+                                Select All ({selectedStudents.length} selected)
+                            </span>
+                        </label>
+                    </div>
+                )}
                 
                 <div className="overflow-y-auto flex-1 pr-2">
                     {loading ? (
@@ -491,14 +587,28 @@ const AdminPanel = () => {
                     ) : (
                         <div className="space-y-3">
                             {students.map((student) => (
-                                <div key={student.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition">
-                                    <div className="flex items-center space-x-4">
+                                <div 
+                                    key={student.id} 
+                                    className={`flex items-center justify-between p-3 rounded-lg border transition ${
+                                        selectedStudents.includes(student.id) 
+                                            ? 'bg-bis-maroon/5 border-bis-maroon/30' 
+                                            : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                                    }`}
+                                >
+                                    <div className="flex items-center space-x-4 flex-1">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedStudents.includes(student.id)}
+                                            onChange={() => toggleStudentSelection(student.id)}
+                                            className="w-4 h-4 text-bis-maroon border-gray-300 rounded focus:ring-bis-maroon focus:ring-2 cursor-pointer"
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
                                         <img 
                                             src={student.image_url || "https://img.icons8.com/color/96/user-male-circle--v1.png"} 
                                             alt={student.name}
                                             className="w-10 h-10 rounded-full object-cover border border-gray-300"
                                         />
-                                        <div>
+                                        <div className="flex-1">
                                             <h4 className="font-semibold text-gray-900">{student.name}</h4>
                                             <p className="text-sm text-gray-500">Batch: {student.batch || 'N/A'} • {student.job_title} • {student.location}</p>
                                         </div>
