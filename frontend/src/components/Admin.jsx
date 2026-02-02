@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Trash2, Plus, RefreshCw, User, MapPin, Briefcase, Linkedin, Image as ImageIcon, Lock, Edit2, Upload, FileSpreadsheet, Download } from 'lucide-react';
+import { Trash2, Plus, RefreshCw, User, MapPin, Briefcase, Linkedin, Image as ImageIcon, Lock, Edit2, Upload, FileSpreadsheet, Download, GraduationCap } from 'lucide-react';
 import { API_URL } from '../config';
 
 const AdminPanel = () => {
@@ -14,6 +14,7 @@ const AdminPanel = () => {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [formData, setFormData] = useState({
+        batch: "",
         name: "",
         location: "",
         job_title: "",
@@ -77,6 +78,7 @@ const AdminPanel = () => {
 
     const handleEdit = (student) => {
         setFormData({
+            batch: student.batch || "",
             name: student.name,
             location: student.location,
             job_title: student.job_title,
@@ -88,6 +90,7 @@ const AdminPanel = () => {
 
     const handleCancelEdit = () => {
         setFormData({
+            batch: "",
             name: "",
             location: "",
             job_title: "",
@@ -163,7 +166,7 @@ const AdminPanel = () => {
     };
 
     const downloadSampleCsv = () => {
-        const csvContent = "name,location,job_title,linkedin_url,image_url\nJohn Doe,New York USA,Software Engineer,https://linkedin.com/in/johndoe,https://example.com/photo.jpg\nJane Smith,London UK,Product Manager,,";
+        const csvContent = "batch,name,location,job_title,linkedin_url,image_url\n16/17,John Doe,New York USA,Software Engineer,https://linkedin.com/in/johndoe,https://example.com/photo.jpg\n17/18,Jane Smith,London UK,Product Manager,,";
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -268,6 +271,21 @@ const AdminPanel = () => {
                 {activeTab === 'single' && (
                     <form onSubmit={handleSubmit} className="space-y-4 animate-fadeIn">
                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Batch</label>
+                        <div className="relative">
+                            <GraduationCap className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                            <input
+                                required
+                                name="batch"
+                                value={formData.batch}
+                                onChange={handleInputChange}
+                                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-bis-maroon focus:outline-none"
+                                placeholder="e.g. 16/17"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                         <div className="relative">
                             <User className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
@@ -370,7 +388,7 @@ const AdminPanel = () => {
                             <h4 className="text-sm font-semibold text-blue-800 mb-2">Instructions</h4>
                             <ul className="text-xs text-blue-700 list-disc list-inside space-y-1">
                                 <li>Upload a .csv file</li>
-                                <li>Required columns: <b>name</b>, <b>location</b></li>
+                                <li>Required columns: <b>batch</b>, <b>name</b>, <b>location</b></li>
                                 <li>Optional: <b>job_title</b>, <b>linkedin_url</b>, <b>image_url</b></li>
                             </ul>
                             <button type="button" onClick={downloadSampleCsv} className="mt-3 flex items-center text-xs font-medium text-blue-600 hover:underline">
@@ -413,6 +431,7 @@ const AdminPanel = () => {
                                 <table className="w-full text-xs text-left">
                                     <thead className="bg-green-100 text-green-800">
                                         <tr>
+                                            <th className="px-2 py-1 border-r border-green-200">batch</th>
                                             <th className="px-2 py-1 border-r border-green-200">name</th>
                                             <th className="px-2 py-1 border-r border-green-200">location</th>
                                             <th className="px-2 py-1 border-r border-green-200">job_title</th>
@@ -422,6 +441,7 @@ const AdminPanel = () => {
                                     </thead>
                                     <tbody className="text-gray-600">
                                         <tr>
+                                            <td className="px-2 py-1 border-r border-green-100 border-t">16/17</td>
                                             <td className="px-2 py-1 border-r border-green-100 border-t">John Doe</td>
                                             <td className="px-2 py-1 border-r border-green-100 border-t">London, UK</td>
                                             <td className="px-2 py-1 border-r border-green-100 border-t">Engineer</td>
@@ -480,7 +500,7 @@ const AdminPanel = () => {
                                         />
                                         <div>
                                             <h4 className="font-semibold text-gray-900">{student.name}</h4>
-                                            <p className="text-sm text-gray-500">{student.job_title} • {student.location}</p>
+                                            <p className="text-sm text-gray-500">Batch: {student.batch || 'N/A'} • {student.job_title} • {student.location}</p>
                                         </div>
                                     </div>
                                     <div className="flex space-x-2">

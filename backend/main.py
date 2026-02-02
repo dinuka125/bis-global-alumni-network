@@ -33,6 +33,7 @@ DATA_FILE = "students.csv"
 
 # --- Models ---
 class StudentBase(BaseModel):
+    batch: str
     name: str
     location: str
     job_title: str
@@ -50,7 +51,7 @@ class Student(StudentBase):
 # --- Helpers ---
 def load_data():
     if not os.path.exists(DATA_FILE):
-        df = pd.DataFrame(columns=["id", "name", "location", "job_title", "linkedin_url", "image_url", "latitude", "longitude"])
+        df = pd.DataFrame(columns=["id", "batch", "name", "location", "job_title", "linkedin_url", "image_url", "latitude", "longitude"])
         df.to_csv(DATA_FILE, index=False)
         return df
     return pd.read_csv(DATA_FILE)
@@ -76,7 +77,7 @@ def process_and_add_students(new_students_df):
 
     for index, row in new_students_df.iterrows():
         # Validate required fields
-        if not row.get("name") or not row.get("location"):
+        if not row.get("batch") or not row.get("name") or not row.get("location"):
             continue
             
         lat, lon = get_coordinates(row["location"])
@@ -85,6 +86,7 @@ def process_and_add_students(new_students_df):
 
         new_student = {
             "id": str(uuid.uuid4()),
+            "batch": row.get("batch", ""),
             "name": row.get("name", ""),
             "location": row.get("location", ""),
             "job_title": row.get("job_title", ""),
@@ -116,9 +118,9 @@ async def upload_csv(file: UploadFile = File(...)):
         df.columns = [c.lower().strip().replace(" ", "_") for c in df.columns]
         
         # Ensure required columns exist (map common variations if needed)
-        # Simple validation: check if 'name' and 'location' exist
-        if 'name' not in df.columns or 'location' not in df.columns:
-             raise HTTPException(status_code=400, detail="CSV must contain 'name' and 'location' columns.")
+        # Simple validation: check if 'batch', 'name' and 'location' exist
+        if 'batch' not in df.columns or 'name' not in df.columns or 'location' not in df.columns:
+             raise HTTPException(status_code=400, detail="CSV must contain 'batch', 'name' and 'location' columns.")
 
         count = process_and_add_students(df)
         return {"message": f"Successfully imported {count} students."}
@@ -153,8 +155,8 @@ async def import_google_sheet(request: GoogleSheetRequest):
         # Normalize headers
         df.columns = [c.lower().strip().replace(" ", "_") for c in df.columns]
         
-        if 'name' not in df.columns or 'location' not in df.columns:
-             raise HTTPException(status_code=400, detail="Sheet must contain 'name' and 'location' columns.")
+        if 'batch' not in df.columns or 'name' not in df.columns or 'location' not in df.columns:
+             raise HTTPException(status_code=400, detail="Sheet must contain 'batch', 'name' and 'location' columns.")
 
         count = process_and_add_students(df)
         return {"message": f"Successfully imported {count} students."}
@@ -185,6 +187,7 @@ def create_student(student: StudentCreate):
 
     new_student = {
         "id": str(uuid.uuid4()),
+        "batch": student.batch,
         "name": student.name,
         "location": student.location,
         "job_title": student.job_title,
@@ -224,6 +227,7 @@ def update_student(student_id: str, student: StudentCreate):
     # We find the index of the row
     idx = df.index[df["id"] == student_id].tolist()[0]
     
+    df.at[idx, "batch"] = student.batch
     df.at[idx, "name"] = student.name
     df.at[idx, "location"] = student.location
     df.at[idx, "job_title"] = student.job_title

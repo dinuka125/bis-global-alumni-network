@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap } from 'rea
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import axios from 'axios';
-import { Search, Loader2, MapPin, Briefcase, Linkedin, X, ChevronRight, Users, Menu } from 'lucide-react';
+import { Search, Loader2, MapPin, Briefcase, Linkedin, X, ChevronRight, Users, Menu, GraduationCap } from 'lucide-react';
 
 // Fix for default marker icon issues in React Leaflet
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -92,9 +92,10 @@ const MapView = () => {
     };
 
     const filteredStudents = students.filter(s => 
-        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.job_title.toLowerCase().includes(searchTerm.toLowerCase())
+        s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.job_title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.batch?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     if (loading) {
@@ -137,7 +138,7 @@ const MapView = () => {
                         <div className="relative group">
                             <input
                                 type="text"
-                                placeholder="Search by name, job..."
+                                placeholder="Search by name, batch, job, location..."
                                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm font-medium text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-bis-maroon/20 focus:bg-white transition-all"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -173,6 +174,16 @@ const MapView = () => {
                                 </div>
 
                                 <div className="space-y-4">
+                                    {selectedStudent.batch && (
+                                        <div className="flex items-start p-3 bg-gray-50 rounded-xl">
+                                            <GraduationCap className="w-5 h-5 text-bis-maroon mt-0.5 mr-3 flex-shrink-0" />
+                                            <div>
+                                                <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Batch</p>
+                                                <p className="text-sm text-gray-700 font-medium">{selectedStudent.batch}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
                                     <div className="flex items-start p-3 bg-gray-50 rounded-xl">
                                         <MapPin className="w-5 h-5 text-bis-maroon mt-0.5 mr-3 flex-shrink-0" />
                                         <div>
@@ -223,7 +234,10 @@ const MapView = () => {
                                             />
                                             <div className="ml-3 flex-1 min-w-0">
                                                 <h4 className="text-sm font-semibold text-gray-900 truncate group-hover:text-bis-maroon transition">{student.name}</h4>
-                                                <p className="text-xs text-gray-500 truncate">{student.location}</p>
+                                                <p className="text-xs text-gray-500 truncate">
+                                                    {student.batch && <span>Batch: {student.batch} • </span>}
+                                                    {student.location}
+                                                </p>
                                             </div>
                                             <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-bis-maroon transition" />
                                         </div>
@@ -379,7 +393,8 @@ const MapView = () => {
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     onClick={(e) => e.stopPropagation()}
-                                                    className="block w-full text-center bg-[#0077b5] text-white py-1.5 rounded text-xs hover:bg-[#006396] transition"
+                                                    className="block w-full text-center bg-[#0077b5] text-white py-1.5 rounded text-xs hover:bg-[#006396] transition font-medium"
+                                                    style={{ color: '#ffffff' }}
                                                 >
                                                     View LinkedIn
                                                 </a>
