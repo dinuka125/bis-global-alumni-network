@@ -605,6 +605,7 @@ const AdminPanel = () => {
                                             onClick={(e) => e.stopPropagation()}
                                         />
                                         <ProfileAvatar
+                                            studentId={student.id}
                                             src={student.image_url}
                                             alt={student.name}
                                             className="w-10 h-10 rounded-full object-cover border border-gray-300"

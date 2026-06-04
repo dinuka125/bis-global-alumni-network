@@ -1,16 +1,36 @@
 import React, { useEffect, useState } from 'react';
-import { DEFAULT_AVATAR, getProfileImageUrl } from '../utils/profileImage';
+import {
+    DEFAULT_AVATAR,
+    getAvatarProxyUrl,
+    getProfileImageUrl,
+    resolveAvatarSrc,
+} from '../utils/profileImage';
 
 /**
- * Profile photo with fallback when URL is missing or the host blocks hotlinking.
+ * Profile photo: backend proxy first (LinkedIn), then direct URL, then placeholder.
  */
-export default function ProfileAvatar({ src, alt, className, ...props }) {
-    const resolved = getProfileImageUrl(src) || DEFAULT_AVATAR;
+export default function ProfileAvatar({ src, studentId, alt, className, ...props }) {
+    const resolved = resolveAvatarSrc(studentId, src);
     const [imgSrc, setImgSrc] = useState(resolved);
+    const [triedDirect, setTriedDirect] = useState(false);
 
     useEffect(() => {
-        setImgSrc(getProfileImageUrl(src) || DEFAULT_AVATAR);
-    }, [src]);
+        setImgSrc(resolveAvatarSrc(studentId, src));
+        setTriedDirect(false);
+    }, [src, studentId]);
+
+    const handleError = () => {
+        const direct = getProfileImageUrl(src);
+        const proxy = getAvatarProxyUrl(studentId, src);
+        if (!triedDirect && direct && proxy && imgSrc.includes('/avatar')) {
+            setTriedDirect(true);
+            setImgSrc(direct);
+            return;
+        }
+        if (imgSrc !== DEFAULT_AVATAR) {
+            setImgSrc(DEFAULT_AVATAR);
+        }
+    };
 
     return (
         <img
@@ -19,11 +39,7 @@ export default function ProfileAvatar({ src, alt, className, ...props }) {
             className={className}
             referrerPolicy="no-referrer"
             loading="lazy"
-            onError={() => {
-                if (imgSrc !== DEFAULT_AVATAR) {
-                    setImgSrc(DEFAULT_AVATAR);
-                }
-            }}
+            onError={handleError}
             {...props}
         />
     );
