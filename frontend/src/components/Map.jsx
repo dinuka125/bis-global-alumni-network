@@ -19,6 +19,12 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 import { API_URL } from '../config';
+import ProfileAvatar from './ProfileAvatar';
+import {
+    DEFAULT_AVATAR,
+    escapeHtmlAttribute,
+    getProfileImageUrl,
+} from '../utils/profileImage';
 
 // Helper function to ensure URL has protocol
 const ensureAbsoluteUrl = (url) => {
@@ -29,19 +35,24 @@ const ensureAbsoluteUrl = (url) => {
     return `https://${url}`;
 };
 
-// Create avatar icon with pin pointer
-const createAvatarIcon = (url) => {
+// Create avatar icon with pin pointer (unique className per marker — Leaflet reuses divIcon DOM otherwise)
+const createAvatarIcon = (url, studentId) => {
+    const imageSrc = getProfileImageUrl(url) || DEFAULT_AVATAR;
+    const safeSrc = escapeHtmlAttribute(imageSrc);
+    const safeFallback = escapeHtmlAttribute(DEFAULT_AVATAR);
+
     return L.divIcon({
         html: `
         <div class="relative">
             <div class="w-12 h-12 p-1 bg-white rounded-full shadow-lg border-2 border-bis-maroon/30 transition-transform transform hover:scale-110">
-                <img src="${url}" class="w-full h-full rounded-full object-cover" 
-                     onerror="this.src='https://img.icons8.com/color/96/user-male-circle--v1.png'" />
+                <img src="${safeSrc}" class="w-full h-full rounded-full object-cover"
+                     referrerpolicy="no-referrer"
+                     onerror="this.onerror=null;this.src='${safeFallback}'" />
             </div>
             <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-bis-maroon transform rotate-45 border-r border-b border-white"></div>
         </div>
         `,
-        className: 'bg-transparent border-none',
+        className: `leaflet-avatar-icon leaflet-avatar-${studentId}`,
         iconSize: [48, 56],
         iconAnchor: [24, 54],
         popupAnchor: [0, -50]
@@ -162,8 +173,8 @@ const MapView = () => {
                                 <div className="flex flex-col items-center mb-6">
                                     <div className="relative">
                                         <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-bis-maroon to-bis-gold">
-                                            <img 
-                                                src={selectedStudent.image_url || "https://img.icons8.com/color/96/user-male-circle--v1.png"} 
+                                            <ProfileAvatar
+                                                src={selectedStudent.image_url}
                                                 alt={selectedStudent.name}
                                                 className="w-full h-full rounded-full object-cover border-4 border-white"
                                             />
@@ -227,8 +238,8 @@ const MapView = () => {
                                             onClick={() => handleStudentClick(student)}
                                             className="flex items-center p-3 hover:bg-bis-maroon/5 rounded-xl cursor-pointer transition group"
                                         >
-                                            <img 
-                                                src={student.image_url || "https://img.icons8.com/color/96/user-male-circle--v1.png"} 
+                                            <ProfileAvatar
+                                                src={student.image_url}
                                                 alt={student.name}
                                                 className="w-10 h-10 rounded-full object-cover border border-gray-100 group-hover:border-bis-maroon/30 transition"
                                             />
@@ -299,7 +310,7 @@ const MapView = () => {
                             <Marker
                                 key={student.id}
                                 position={[student.latitude, student.longitude]}
-                                icon={createAvatarIcon(student.image_url)}
+                                icon={createAvatarIcon(student.image_url, student.id)}
                                 eventHandlers={{
                                     click: () => handleStudentClick(student),
                                     mouseover: (e) => {
@@ -374,8 +385,8 @@ const MapView = () => {
                                             }}
                                         >
                                             <div className="flex items-center space-x-3 mb-2">
-                                                <img 
-                                                    src={student.image_url || "https://img.icons8.com/color/96/user-male-circle--v1.png"} 
+                                                <ProfileAvatar
+                                                    src={student.image_url}
                                                     alt={student.name}
                                                     className="w-12 h-12 rounded-full object-cover border-2 border-bis-maroon/20"
                                                 />

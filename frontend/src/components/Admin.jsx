@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Trash2, Plus, RefreshCw, User, MapPin, Briefcase, Linkedin, Image as ImageIcon, Lock, Edit2, Upload, FileSpreadsheet, Download, GraduationCap, CheckSquare } from 'lucide-react';
 import { API_URL } from '../config';
+import ProfileAvatar from './ProfileAvatar';
 
 const AdminPanel = () => {
     // Auth State
@@ -603,8 +604,8 @@ const AdminPanel = () => {
                                             className="w-4 h-4 text-bis-maroon border-gray-300 rounded focus:ring-bis-maroon focus:ring-2 cursor-pointer"
                                             onClick={(e) => e.stopPropagation()}
                                         />
-                                        <img 
-                                            src={student.image_url || "https://img.icons8.com/color/96/user-male-circle--v1.png"} 
+                                        <ProfileAvatar
+                                            src={student.image_url}
                                             alt={student.name}
                                             className="w-10 h-10 rounded-full object-cover border border-gray-300"
                                         />
