@@ -23,7 +23,9 @@ import ProfileAvatar from './ProfileAvatar';
 import {
     DEFAULT_AVATAR,
     escapeHtmlAttribute,
+    getAvatarProxyUrl,
     getProfileImageUrl,
+    resolveAvatarSrc,
 } from '../utils/profileImage';
 
 // Helper function to ensure URL has protocol
@@ -37,9 +39,11 @@ const ensureAbsoluteUrl = (url) => {
 
 // Create avatar icon with pin pointer (unique className per marker — Leaflet reuses divIcon DOM otherwise)
 const createAvatarIcon = (url, studentId) => {
-    const imageSrc = getProfileImageUrl(url) || DEFAULT_AVATAR;
+    const directUrl = getProfileImageUrl(url);
+    const imageSrc = resolveAvatarSrc(studentId, url);
     const safeSrc = escapeHtmlAttribute(imageSrc);
-    const safeFallback = escapeHtmlAttribute(DEFAULT_AVATAR);
+    const safeDirect = directUrl ? escapeHtmlAttribute(directUrl) : '';
+    const safeDefault = escapeHtmlAttribute(DEFAULT_AVATAR);
 
     return L.divIcon({
         html: `
@@ -47,7 +51,8 @@ const createAvatarIcon = (url, studentId) => {
             <div class="w-12 h-12 p-1 bg-white rounded-full shadow-lg border-2 border-bis-maroon/30 transition-transform transform hover:scale-110">
                 <img src="${safeSrc}" class="w-full h-full rounded-full object-cover"
                      referrerpolicy="no-referrer"
-                     onerror="this.onerror=null;this.src='${safeFallback}'" />
+                     data-direct="${safeDirect}"
+                     onerror="if(this.dataset.direct&&!this.dataset.triedDirect){this.dataset.triedDirect='1';this.src=this.dataset.direct}else{this.onerror=null;this.src='${safeDefault}'}" />
             </div>
             <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-bis-maroon transform rotate-45 border-r border-b border-white"></div>
         </div>
@@ -174,6 +179,7 @@ const MapView = () => {
                                     <div className="relative">
                                         <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-bis-maroon to-bis-gold">
                                             <ProfileAvatar
+                                                studentId={selectedStudent.id}
                                                 src={selectedStudent.image_url}
                                                 alt={selectedStudent.name}
                                                 className="w-full h-full rounded-full object-cover border-4 border-white"
@@ -239,6 +245,7 @@ const MapView = () => {
                                             className="flex items-center p-3 hover:bg-bis-maroon/5 rounded-xl cursor-pointer transition group"
                                         >
                                             <ProfileAvatar
+                                                studentId={student.id}
                                                 src={student.image_url}
                                                 alt={student.name}
                                                 className="w-10 h-10 rounded-full object-cover border border-gray-100 group-hover:border-bis-maroon/30 transition"
@@ -386,6 +393,7 @@ const MapView = () => {
                                         >
                                             <div className="flex items-center space-x-3 mb-2">
                                                 <ProfileAvatar
+                                                    studentId={student.id}
                                                     src={student.image_url}
                                                     alt={student.name}
                                                     className="w-12 h-12 rounded-full object-cover border-2 border-bis-maroon/20"

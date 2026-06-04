@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
 from typing import Optional
 import pandas as pd
@@ -31,6 +32,15 @@ app.add_middleware(
 )
 
 DATA_FILE = "students.csv"
+
+# Headers for fetching external profile photos (LinkedIn CDN blocks browser hotlinking)
+AVATAR_FETCH_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    ),
+    "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+}
 
 # --- Models ---
 class StudentBase(BaseModel):
@@ -173,6 +183,51 @@ async def import_google_sheet(request: GoogleSheetRequest):
 @app.get("/")
 def read_root():
     return {"message": "BIS Alumni Network API"}
+
+def _get_student_image_url(student_id: str) -> str:
+    df = load_data()
+    match = df[df["id"] == student_id]
+    if match.empty:
+        raise HTTPException(status_code=404, detail="Student not found")
+    image_url = match.iloc[0].get("image_url")
+    if pd.isna(image_url):
+        raise HTTPException(status_code=404, detail="No profile image")
+    image_url = str(image_url).strip()
+    if not image_url:
+        raise HTTPException(status_code=404, detail="No profile image")
+    return image_url
+
+
+@app.get("/students/{student_id}/avatar")
+def get_student_avatar(student_id: str):
+    """Proxy profile images so map markers can load LinkedIn CDN URLs (blocked in-browser)."""
+    image_url = _get_student_image_url(student_id)
+    referer = "https://www.linkedin.com/"
+    if "researchgate.net" in image_url or "rgstatic.net" in image_url:
+        referer = "https://www.researchgate.net/"
+
+    try:
+        response = requests.get(
+            image_url,
+            headers={**AVATAR_FETCH_HEADERS, "Referer": referer},
+            timeout=12,
+        )
+    except requests.RequestException:
+        raise HTTPException(status_code=404, detail="Could not fetch profile image")
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=404, detail="Could not fetch profile image")
+
+    content_type = response.headers.get("Content-Type", "image/jpeg").split(";")[0].strip()
+    if not content_type.startswith("image/"):
+        raise HTTPException(status_code=404, detail="Invalid profile image")
+
+    return Response(
+        content=response.content,
+        media_type=content_type,
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
 
 @app.get("/students")
 def get_students():
